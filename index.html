@@ -24,7 +24,7 @@
                 <p class="text-xs text-slate-400">Firebase Realtime DB: <span id="db-status" class="text-amber-500 font-mono">Connecting...</span></p>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
-                <button onclick="triggerMockEvent('morning_greeting')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
+                <button onclick="triggerMockEvent('test_mock')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
                     Test Mock
                 </button>
             </div>
@@ -149,6 +149,7 @@
         });
 
         const audioClips = [
+            { id: "test_mock", label: "0. testmock.mp3 (Test Mock Audio)" },
             { id: "temp_hot", label: "1A. 0001_too_hot (Too Hot Warning)" },
             { id: "temp_cold", label: "1B. 0002_too_cold (Too Cold Warning)" },
             { id: "phantom_1", label: "2A. 0003_phantom_sip_first (Single Offense)" },

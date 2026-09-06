@@ -34,23 +34,15 @@
     <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <div class="space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                    📶 ESP8266 Wi-Fi Config
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center text-center">
+                <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2 w-full justify-start">
+                    📶 Wi-Fi QR Code Card
                 </h2>
-                <form id="wifi-form" onsubmit="saveWiFiConfig(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Wi-Fi Network Name (SSID)</label>
-                        <input type="text" id="wifi-ssid" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500" placeholder="Home_Network">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Wi-Fi Password</label>
-                        <input type="password" id="wifi-pass" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500" placeholder="••••••••">
-                    </div>
-                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2 rounded-lg text-sm border border-slate-700 transition-colors">
-                        Push Wi-Fi Credentials to Mug
-                    </button>
-                </form>
+                <div class="bg-white p-3 rounded-xl shadow-md mb-4">
+                    <img id="wifi-qr-img" src="" alt="Scan to connect to Wi-Fi" class="w-36 h-36 object-contain">
+                </div>
+                <p class="text-xs text-slate-400 mb-1">Network: <span id="qr-ssid" class="font-mono text-amber-400">--</span></p>
+                <p class="text-xs text-slate-500">Scan with your phone camera to instantly connect.</p>
             </div>
 
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
@@ -191,8 +183,15 @@
 
         db.ref('config/wifi').on('value', (snapshot) => {
             const data = snapshot.val() || {};
-            if(data.ssid) document.getElementById('wifi-ssid').value = data.ssid;
-            if(data.pass) document.getElementById('wifi-pass').value = data.pass;
+            const ssid = data.ssid || "MugOfJudgement";
+            const pass = data.pass || "";
+            
+            document.getElementById('qr-ssid').textContent = ssid;
+            
+            // Generate standard Wi-Fi QR string format: WIFI:S:ssid;T:WPA;P:pass;;
+            const wifiString = `WIFI:S:${ssid};T:WPA;P:${pass};;`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(wifiString)}`;
+            document.getElementById('wifi-qr-img').src = qrUrl;
         });
 
         db.ref('telemetry').on('value', (snapshot) => {
@@ -265,7 +264,6 @@
         function playEventAudio(eventId) {
             const player = document.getElementById('judgement-audio');
             
-            // Handle test_mock directly from local/repo directory without database link configuration
             if (eventId === 'test_mock') {
                 player.src = "audio/testmock.mp3";
                 player.play().catch(err => {
@@ -295,22 +293,6 @@
             player.src = inputVal;
             player.play().catch(err => {
                 alert("Playback failed. Check console for URL/CORS errors.");
-            });
-        }
-
-        function saveWiFiConfig(e) {
-            e.preventDefault();
-            const ssid = document.getElementById('wifi-ssid').value;
-            const pass = document.getElementById('wifi-pass').value;
-            
-            db.ref('config/wifi').set({
-                ssid: ssid,
-                pass: pass,
-                updatedAt: Date.now()
-            }).then(() => {
-                alert("Wi-Fi credentials updated successfully for ESP8266!");
-            }).catch(err => {
-                alert("Failed to save: " + err.message);
             });
         }
 

@@ -267,7 +267,7 @@
             
             // Handle test_mock directly from local/repo directory without database link configuration
             if (eventId === 'test_mock') {
-                player.src = "testmock.mp3";
+                player.src = "audio/testmock.mp3";
                 player.play().catch(err => {
                     document.getElementById('audio-banner').style.display = 'block';
                 });

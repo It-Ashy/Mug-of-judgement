@@ -149,7 +149,6 @@
         });
 
         const audioClips = [
-            { id: "test_mock", label: "0. testmock.mp3 (Test Mock Audio)" },
             { id: "temp_hot", label: "1A. 0001_too_hot (Too Hot Warning)" },
             { id: "temp_cold", label: "1B. 0002_too_cold (Too Cold Warning)" },
             { id: "phantom_1", label: "2A. 0003_phantom_sip_first (Single Offense)" },
@@ -264,10 +263,20 @@
         });
 
         function playEventAudio(eventId) {
+            const player = document.getElementById('judgement-audio');
+            
+            // Handle test_mock directly from local/repo directory without database link configuration
+            if (eventId === 'test_mock') {
+                player.src = "testmock.mp3";
+                player.play().catch(err => {
+                    document.getElementById('audio-banner').style.display = 'block';
+                });
+                return;
+            }
+
             db.ref(`config/audio/${eventId}`).once('value').then((audioSnap) => {
                 const audioPath = audioSnap.val();
                 if (audioPath) {
-                    const player = document.getElementById('judgement-audio');
                     player.src = audioPath;
                     player.play().catch(err => {
                         document.getElementById('audio-banner').style.display = 'block';

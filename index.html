@@ -34,15 +34,26 @@
     <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <div class="space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center text-center">
-                <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2 w-full justify-start">
-                    📶 Wi-Fi QR Code Card
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                    📶 ESP8266 Wi-Fi Config
                 </h2>
-                <div class="bg-white p-3 rounded-xl shadow-md mb-4">
-                    <img id="wifi-qr-img" src="" alt="Scan to connect to Wi-Fi" class="w-36 h-36 object-contain">
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
+                        <span class="text-slate-400">SSID:</span>
+                        <span id="ap-ssid" class="font-mono text-amber-400">--</span>
+                    </div>
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
+                        <span class="text-slate-400">Password:</span>
+                        <span id="ap-pass" class="font-mono text-slate-300">--</span>
+                    </div>
                 </div>
-                <p class="text-xs text-slate-400 mb-1">Network: <span id="qr-ssid" class="font-mono text-amber-400">--</span></p>
-                <p class="text-xs text-slate-500">Scan with your phone camera to instantly connect.</p>
+                <div class="flex flex-col items-center justify-center pt-2">
+                    <div class="bg-white p-3 rounded-xl shadow-md mb-2">
+                        <img id="wifi-qr-img" src="" alt="Scan to connect to Wi-Fi" class="w-32 h-32 object-contain">
+                    </div>
+                    <p class="text-[11px] text-slate-500 text-center">Scan with phone camera to join network</p>
+                </div>
             </div>
 
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
@@ -186,9 +197,9 @@
             const ssid = data.ssid || "MugOfJudgement";
             const pass = data.pass || "";
             
-            document.getElementById('qr-ssid').textContent = ssid;
+            document.getElementById('ap-ssid').textContent = ssid;
+            document.getElementById('ap-pass').textContent = pass || "(None)";
             
-            // Generate standard Wi-Fi QR string format: WIFI:S:ssid;T:WPA;P:pass;;
             const wifiString = `WIFI:S:${ssid};T:WPA;P:${pass};;`;
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(wifiString)}`;
             document.getElementById('wifi-qr-img').src = qrUrl;

@@ -232,12 +232,19 @@
         });
 
         // Listen for real-time triggers from ESP8266
+        let isInitialLoad = true;
+
         db.ref('triggers/latest_event').on('value', (snapshot) => {
             const trigger = snapshot.val();
             if (!trigger) return;
 
             const eventId = trigger.event;
             document.getElementById('active-event-log').textContent = `Triggered: [${eventId}] at ${new Date(trigger.timestamp).toLocaleTimeString()}`;
+
+            if (isInitialLoad) {
+                isInitialLoad = false;
+                return;
+            }
 
             db.ref(`config/audio/${eventId}`).once('value').then((audioSnap) => {
                 const audioPath = audioSnap.val();

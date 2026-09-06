@@ -10,6 +10,12 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
 
+    <!-- Audio Permission Banner -->
+    <div id="audio-banner" class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs text-amber-300 flex items-center justify-center gap-2">
+        <span>⚠️ Browser Audio Policy: Click anywhere or test an event to enable sound playback.</span>
+        <button onclick="unlockAudio()" class="underline font-semibold hover:text-amber-200">Enable Sound</button>
+    </div>
+
     <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
@@ -108,6 +114,29 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            const player = document.getElementById('judgement-audio');
+            player.play().then(() => {
+                player.pause();
+                player.currentTime = 0;
+                audioUnlocked = true;
+                document.getElementById('audio-banner').style.display = 'none';
+            }).catch(err => {
+                console.log("Audio unlock attempt:", err);
+                audioUnlocked = true; // Force flag so subsequent user clicks work
+                document.getElementById('audio-banner').style.display = 'none';
+            });
+        }
+
+        // Auto-unlock on first document interaction
+        document.addEventListener('click', () => {
+            if (!audioUnlocked) {
+                unlockAudio();
+            }
+        }, { once: true });
 
         // Check Connection Status
         const dbStatusEl = document.getElementById('db-status');
@@ -231,18 +260,17 @@
             }
         });
 
-        // Listen for real-time triggers from ESP8266
-        let isInitialLoad = true;
-
+        // Listen for real-time triggers from ESP8266 with timestamp freshness check
         db.ref('triggers/latest_event').on('value', (snapshot) => {
             const trigger = snapshot.val();
             if (!trigger) return;
 
             const eventId = trigger.event;
-            document.getElementById('active-event-log').textContent = `Triggered: [${eventId}] at ${new Date(trigger.timestamp).toLocaleTimeString()}`;
+            const eventTime = trigger.timestamp || 0;
+            document.getElementById('active-event-log').textContent = `Triggered: [${eventId}] at ${new Date(eventTime).toLocaleTimeString()}`;
 
-            if (isInitialLoad) {
-                isInitialLoad = false;
+            // Ignore stale events older than 15 seconds (prevents old database values from playing on page load/reconnect)
+            if (Date.now() - eventTime > 15000) {
                 return;
             }
 
@@ -252,7 +280,8 @@
                     const player = document.getElementById('judgement-audio');
                     player.src = audioPath;
                     player.play().catch(err => {
-                        console.log("Audio playback blocked by browser policy. Interact with page first:", err);
+                        console.log("Audio playback blocked by browser policy:", err);
+                        document.getElementById('audio-banner').style.display = 'block';
                     });
                 }
             });
@@ -290,7 +319,7 @@
             });
         }
 
-        // Simulate Test Trigger
+        // Simulate Test Trigger with fresh timestamp
         function triggerMockEvent(eventId) {
             db.ref('triggers/latest_event').set({
                 event: eventId,

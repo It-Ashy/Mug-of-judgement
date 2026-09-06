@@ -24,8 +24,8 @@
                 <p class="text-xs text-slate-400">Firebase Realtime DB: <span id="db-status" class="text-amber-500 font-mono">Connecting...</span></p>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
-                <button onclick="triggerMockEvent('temp_hot')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
-                    Test Mock Event (temp_hot)
+                <button onclick="triggerMockEvent('morning_greeting')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
+                    Test Mock Event: "Hello Guys" (Morning Greeting)
                 </button>
             </div>
         </div>
@@ -107,7 +107,6 @@
     <audio id="judgement-audio" preload="auto"></audio>
 
     <script>
-        // Initialize Firebase
         const firebaseConfig = {
             databaseURL: "https://mugofjudgement-default-rtdb.firebaseio.com/"
         };
@@ -118,29 +117,24 @@
 
         function unlockAudio() {
             const player = document.getElementById('judgement-audio');
-            // Prime audio source with a tiny silent audio snippet so the browser accepts user interaction unlock
             player.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
             player.play().then(() => {
                 player.pause();
                 player.currentTime = 0;
                 audioUnlocked = true;
                 document.getElementById('audio-banner').style.display = 'none';
-                console.log("Audio successfully unlocked via user interaction.");
             }).catch(err => {
-                console.log("Audio unlock policy catch:", err);
                 audioUnlocked = true; 
                 document.getElementById('audio-banner').style.display = 'none';
             });
         }
 
-        // Auto-unlock listener on first click anywhere on the document
         document.addEventListener('click', () => {
             if (!audioUnlocked) {
                 unlockAudio();
             }
         }, { once: true });
 
-        // Check Connection Status
         const dbStatusEl = document.getElementById('db-status');
         db.ref(".info/connected").on("value", (snap) => {
             if (snap.val() === true) {
@@ -152,7 +146,6 @@
             }
         });
 
-        // 12 Audio Categories mapped to your file structure
         const audioClips = [
             { id: "temp_hot", label: "1A. 0001_too_hot (Too Hot Warning)" },
             { id: "temp_cold", label: "1B. 0002_too_cold (Too Cold Warning)" },
@@ -162,13 +155,12 @@
             { id: "unwashed_dish", label: "4. 0006_dirty_mug (Unwashed Dish Penalty)" },
             { id: "anger_shake", label: "5. 0007_anger_shake (Anger Shake Escalation)" },
             { id: "late_night", label: "6. 0008_late_night_caffeine (Late-Night Sarcasm)" },
-            { id: "morning_greeting", label: "7. 0009_first_sip (First Sip of the Day)" },
+            { id: "morning_greeting", label: "7. 0009_first_sip (First Sip of the Day / Hello Guys)" },
             { id: "staredown", label: "8. 0010_stare_down (Intermittent Pings)" },
             { id: "bottom_scraper", label: "9. 0011_bottom_scraper (Desperation Check)" },
             { id: "earthquake_panic", label: "10. 0012_spill_panic (Spill / Earthquake Panic)" }
         ];
 
-        // Render Audio Configuration inputs with a test play button next to each
         const audioListContainer = document.getElementById('audio-list');
         audioClips.forEach(clip => {
             const item = document.createElement('div');
@@ -185,7 +177,6 @@
             audioListContainer.appendChild(item);
         });
 
-        // Load current audio configurations from Firebase
         db.ref('config/audio').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             audioClips.forEach(clip => {
@@ -196,17 +187,14 @@
             });
         });
 
-        // Load Wi-Fi Config
         db.ref('config/wifi').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             if(data.ssid) document.getElementById('wifi-ssid').value = data.ssid;
             if(data.pass) document.getElementById('wifi-pass').value = data.pass;
         });
 
-        // Load live sensor status with enhanced conditional formatting
         db.ref('telemetry').on('value', (snapshot) => {
             const data = snapshot.val() || {};
-            
             const tempVal = data.temperature;
             const tempElem = document.getElementById('tele-temp');
             
@@ -257,7 +245,6 @@
             }
         });
 
-        // Listen for real-time triggers from ESP8266
         db.ref('triggers/latest_event').on('value', (snapshot) => {
             const trigger = snapshot.val();
             if (!trigger) return;
@@ -266,7 +253,6 @@
             const eventTime = trigger.timestamp || 0;
             document.getElementById('active-event-log').textContent = `Triggered: [${eventId}] at ${new Date(eventTime).toLocaleTimeString()}`;
 
-            // Play associated audio
             playEventAudio(eventId);
         });
 
@@ -277,16 +263,12 @@
                     const player = document.getElementById('judgement-audio');
                     player.src = audioPath;
                     player.play().catch(err => {
-                        console.log("Playback error or blocked by browser policy:", err);
                         document.getElementById('audio-banner').style.display = 'block';
                     });
-                } else {
-                    console.log("No audio path configured in Firebase for event:", eventId);
                 }
             });
         }
 
-        // Test button next to inputs
         function testSingleAudio(eventId) {
             const inputVal = document.getElementById(`audio_${eventId}`).value;
             if (!inputVal) {
@@ -297,11 +279,9 @@
             player.src = inputVal;
             player.play().catch(err => {
                 alert("Playback failed. Check console for URL/CORS errors.");
-                console.log(err);
             });
         }
 
-        // Save Wi-Fi Credentials
         function saveWiFiConfig(e) {
             e.preventDefault();
             const ssid = document.getElementById('wifi-ssid').value;
@@ -318,7 +298,6 @@
             });
         }
 
-        // Save All Audio Links
         function saveAllAudioLinks() {
             const audioData = {};
             audioClips.forEach(clip => {
@@ -333,13 +312,10 @@
             });
         }
 
-        // Simulate Test Trigger
         function triggerMockEvent(eventId) {
             db.ref('triggers/latest_event').set({
                 event: eventId,
                 timestamp: Date.now()
-            }).then(() => {
-                console.log("Mock event fired: " + eventId);
             });
         }
     </script>

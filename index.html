@@ -41,11 +41,11 @@
                 <div class="space-y-2 text-xs">
                     <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
                         <span class="text-slate-400">SSID:</span>
-                        <span id="ap-ssid" class="font-mono text-amber-400">--</span>
+                        <span id="ap-ssid" class="font-mono text-amber-400">Mug-Of-Judgement</span>
                     </div>
                     <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
                         <span class="text-slate-400">Password:</span>
-                        <span id="ap-pass" class="font-mono text-slate-300">--</span>
+                        <span id="ap-pass" class="font-mono text-slate-300">judgement123</span>
                     </div>
                 </div>
                 <div class="flex flex-col items-center justify-center pt-2">
@@ -151,6 +151,13 @@
             }
         });
 
+        // Initialize static QR code directly on page load
+        const apSsid = "Mug-Of-Judgement";
+        const apPass = "judgement123";
+        const wifiString = `WIFI:S:${apSsid};T:WPA;P:${apPass};;`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(wifiString)}`;
+        document.getElementById('wifi-qr-img').src = qrUrl;
+
         const audioClips = [
             { id: "temp_hot", label: "1A. 0001_too_hot (Too Hot Warning)" },
             { id: "temp_cold", label: "1B. 0002_too_cold (Too Cold Warning)" },
@@ -190,19 +197,6 @@
                     input.value = data[clip.id];
                 }
             });
-        });
-
-        db.ref('config/wifi').on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            const ssid = data.ssid || "MugOfJudgement";
-            const pass = data.pass || "";
-            
-            document.getElementById('ap-ssid').textContent = ssid;
-            document.getElementById('ap-pass').textContent = pass || "(None)";
-            
-            const wifiString = `WIFI:S:${ssid};T:WPA;P:${pass};;`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(wifiString)}`;
-            document.getElementById('wifi-qr-img').src = qrUrl;
         });
 
         db.ref('telemetry').on('value', (snapshot) => {

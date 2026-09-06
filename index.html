@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passive-Aggressive Mug of Judgement - Control Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-amber-400 flex items-center gap-2">
+                    ☕ Mug of Judgement <span class="text-xs px-2 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/20">Control Center</span>
+                </h1>
+                <p class="text-xs text-slate-400">Firebase Realtime DB: <span id="db-status" class="text-amber-500 font-mono">Connecting...</span></p>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <button onclick="triggerMockEvent('phantom_1')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
+                    Test Mock Event
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <div class="space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                    📶 ESP8266 Wi-Fi Config
+                </h2>
+                <form id="wifi-form" onsubmit="saveWiFiConfig(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Wi-Fi Network Name (SSID)</label>
+                        <input type="text" id="wifi-ssid" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500" placeholder="Home_Network">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Wi-Fi Password</label>
+                        <input type="password" id="wifi-pass" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2 rounded-lg text-sm border border-slate-700 transition-colors">
+                        Push Wi-Fi Credentials to Mug
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                    📊 Live Telemetry
+                </h2>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between p-3 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400">Temperature (NTC):</span>
+                        <span id="tele-temp" class="font-mono font-medium text-amber-400">-- °C</span>
+                    </div>
+                    <div class="flex justify-between p-3 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400">Liquid Bridge:</span>
+                        <span id="tele-liquid" class="font-mono font-medium text-emerald-400">--</span>
+                    </div>
+                    <div class="flex justify-between p-3 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400">Motion Status:</span>
+                        <span id="tele-motion" class="font-mono font-medium text-sky-400">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-lg font-semibold text-slate-200 mb-2 flex items-center gap-2">
+                    🚨 Last Judgement Event
+                </h2>
+                <p id="active-event-log" class="text-xs font-mono text-amber-400 bg-slate-950 p-3 rounded-lg border border-slate-800">Waiting for trigger...</p>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-200">🔊 Audio Clip Customization</h2>
+                        <p class="text-xs text-slate-400">Link your MP3 files (matching your local library) to each trigger condition.</p>
+                    </div>
+                    <button onclick="saveAllAudioLinks()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-emerald-600/10">
+                        Save Audio Config
+                    </button>
+                </div>
+
+                <div id="audio-list" class="space-y-4 max-h-[550px] overflow-y-auto pr-2">
+                    </div>
+            </div>
+        </div>
+
+    </main>
+
+    <audio id="judgement-audio" preload="auto"></audio>
+
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            databaseURL: "https://mugofjudgement-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Check Connection Status
+        const dbStatusEl = document.getElementById('db-status');
+        db.ref(".info/connected").on("value", (snap) => {
+            if (snap.val() === true) {
+                dbStatusEl.textContent = "Connected";
+                dbStatusEl.className = "text-emerald-400 font-mono";
+            } else {
+                dbStatusEl.textContent = "Disconnected";
+                dbStatusEl.className = "text-rose-400 font-mono";
+            }
+        });
+
+        // 12 Audio Categories mapped to your file structure
+        const audioClips = [
+            { id: "temp_hot", label: "1A. 0001_too_hot (Too Hot Warning)" },
+            { id: "temp_cold", label: "1B. 0002_too_cold (Too Cold Warning)" },
+            { id: "phantom_1", label: "2A. 0003_phantom_sip_first (Single Offense)" },
+            { id: "phantom_2", label: "2B. 0004_phantom_sip_repeat (Repeat Offense)" },
+            { id: "neglected_drink", label: "3. 0005_neglected_drink (Procrastinator Alert)" },
+            { id: "unwashed_dish", label: "4. 0006_dirty_mug (Unwashed Dish Penalty)" },
+            { id: "anger_shake", label: "5. 0007_anger_shake (Anger Shake Escalation)" },
+            { id: "late_night", label: "6. 0008_late_night_caffeine (Late-Night Sarcasm)" },
+            { id: "morning_greeting", label: "7. 0009_first_sip (First Sip of the Day)" },
+            { id: "staredown", label: "8. 0010_stare_down (Intermittent Pings)" },
+            { id: "bottom_scraper", label: "9. 0011_bottom_scraper (Desperation Check)" },
+            { id: "earthquake_panic", label: "10. 0012_spill_panic (Spill / Earthquake Panic)" }
+        ];
+
+        // Render Audio Configuration inputs
+        const audioListContainer = document.getElementById('audio-list');
+        audioClips.forEach(clip => {
+            const item = document.createElement('div');
+            item.className = "bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+            item.innerHTML = `
+                <div class="flex-1">
+                    <span class="text-sm font-medium text-slate-200">${clip.label}</span>
+                </div>
+                <div class="w-full sm:w-1/2 flex gap-2">
+                    <input type="text" id="audio_${clip.id}" placeholder="Enter file path or URL (e.g., audio/0001_too_hot.mp3)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500 font-mono">
+                </div>
+            `;
+            audioListContainer.appendChild(item);
+        });
+
+        // Load current audio configurations from Firebase
+        db.ref('config/audio').on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            audioClips.forEach(clip => {
+                const input = document.getElementById(`audio_${clip.id}`);
+                if (input && data[clip.id]) {
+                    input.value = data[clip.id];
+                }
+            });
+        });
+
+        // Load Wi-Fi Config
+        db.ref('config/wifi').on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            if(data.ssid) document.getElementById('wifi-ssid').value = data.ssid;
+            if(data.pass) document.getElementById('wifi-pass').value = data.pass;
+        });
+
+        // Load live sensor status
+        db.ref('telemetry').on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            document.getElementById('tele-temp').textContent = (data.temperature !== undefined ? data.temperature + " °C" : "-- °C");
+            document.getElementById('tele-liquid').textContent = (data.liquid !== undefined ? (data.liquid ? "Wet" : "Dry") : "--");
+            document.getElementById('tele-motion').textContent = (data.motion !== undefined ? data.motion : "--");
+        });
+
+        // Listen for real-time triggers from ESP8266
+        db.ref('triggers/latest_event').on('value', (snapshot) => {
+            const trigger = snapshot.val();
+            if (!trigger) return;
+
+            const eventId = trigger.event; // e.g., "phantom_1"
+            document.getElementById('active-event-log').textContent = `Triggered: [${eventId}] at ${new Date(trigger.timestamp).toLocaleTimeString()}`;
+
+            // Fetch the corresponding audio URL/path from Firebase config
+            db.ref(`config/audio/${eventId}`).once('value').then((audioSnap) => {
+                const audioPath = audioSnap.val();
+                if (audioPath) {
+                    const player = document.getElementById('judgement-audio');
+                    player.src = audioPath;
+                    player.play().catch(err => {
+                        console.log("Audio playback blocked by browser policy. Interact with page first:", err);
+                    });
+                }
+            });
+        });
+
+        // Save Wi-Fi Credentials
+        function saveWiFiConfig(e) {
+            e.preventDefault();
+            const ssid = document.getElementById('wifi-ssid').value;
+            const pass = document.getElementById('wifi-pass').value;
+            
+            db.ref('config/wifi').set({
+                ssid: ssid,
+                pass: pass,
+                updatedAt: Date.now()
+            }).then(() => {
+                alert("Wi-Fi credentials updated successfully for ESP8266!");
+            }).catch(err => {
+                alert("Failed to save: " + err.message);
+            });
+        }
+
+        // Save All Audio Links
+        function saveAllAudioLinks() {
+            const audioData = {};
+            audioClips.forEach(clip => {
+                const val = document.getElementById(`audio_${clip.id}`).value;
+                audioData[clip.id] = val;
+            });
+
+            db.ref('config/audio').set(audioData).then(() => {
+                alert("Audio clip paths saved successfully!");
+            }).catch(err => {
+                alert("Failed to save audio files: " + err.message);
+            });
+        }
+
+        // Simulate Test Trigger
+        function triggerMockEvent(eventId) {
+            db.ref('triggers/latest_event').set({
+                event: eventId,
+                timestamp: Date.now()
+            }).then(() => {
+                console.log("Mock event fired: " + eventId);
+            });
+        }
+    </script>
+</body>
+</html>

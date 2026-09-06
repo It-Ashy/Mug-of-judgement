@@ -10,7 +10,6 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
 
-    <!-- Audio Permission Banner -->
     <div id="audio-banner" class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs text-amber-300 flex items-center justify-center gap-2">
         <span>⚠️ Browser Audio Policy: Click anywhere or test an event to enable sound playback.</span>
         <button onclick="unlockAudio()" class="underline font-semibold hover:text-amber-200">Enable Sound</button>
@@ -26,7 +25,7 @@
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
                 <button onclick="triggerMockEvent('temp_hot')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
-                    Test Mock Event
+                    Test Mock Event (temp_hot)
                 </button>
             </div>
         </div>
@@ -99,7 +98,7 @@
                 </div>
 
                 <div id="audio-list" class="space-y-4 max-h-[550px] overflow-y-auto pr-2">
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -119,19 +118,22 @@
 
         function unlockAudio() {
             const player = document.getElementById('judgement-audio');
+            // Prime audio source with a tiny silent audio snippet so the browser accepts user interaction unlock
+            player.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
             player.play().then(() => {
                 player.pause();
                 player.currentTime = 0;
                 audioUnlocked = true;
                 document.getElementById('audio-banner').style.display = 'none';
+                console.log("Audio successfully unlocked via user interaction.");
             }).catch(err => {
-                console.log("Audio unlock attempt:", err);
-                audioUnlocked = true; // Force flag so subsequent user clicks work
+                console.log("Audio unlock policy catch:", err);
+                audioUnlocked = true; 
                 document.getElementById('audio-banner').style.display = 'none';
             });
         }
 
-        // Auto-unlock on first document interaction
+        // Auto-unlock listener on first click anywhere on the document
         document.addEventListener('click', () => {
             if (!audioUnlocked) {
                 unlockAudio();
@@ -166,7 +168,7 @@
             { id: "earthquake_panic", label: "10. 0012_spill_panic (Spill / Earthquake Panic)" }
         ];
 
-        // Render Audio Configuration inputs
+        // Render Audio Configuration inputs with a test play button next to each
         const audioListContainer = document.getElementById('audio-list');
         audioClips.forEach(clip => {
             const item = document.createElement('div');
@@ -177,6 +179,7 @@
                 </div>
                 <div class="w-full sm:w-1/2 flex gap-2">
                     <input type="text" id="audio_${clip.id}" placeholder="https://raw.githubusercontent.com/..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500 font-mono">
+                    <button onclick="testSingleAudio('${clip.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 shrink-0">Test</button>
                 </div>
             `;
             audioListContainer.appendChild(item);
@@ -204,10 +207,8 @@
         db.ref('telemetry').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             
-            // 1. Temperature & Condition Color Logic
             const tempVal = data.temperature;
             const tempElem = document.getElementById('tele-temp');
-            const condElem = document.getElementById('temp-condition');
             
             if (tempVal !== undefined) {
                 let colorClass = "";
@@ -232,7 +233,6 @@
                 tempElem.textContent = "-- °C";
             }
 
-            // 2. Liquid Bridge (Strictly Wet or Dry)
             const liquidVal = data.liquidBridge !== undefined ? data.liquidBridge : data.liquid;
             const liquidElem = document.getElementById('tele-liquid');
             if (liquidVal !== undefined) {
@@ -242,7 +242,6 @@
                 liquidElem.textContent = "--";
             }
 
-            // 3. Motion Status (Strictly Idle or Active)
             const rawMotion = data.motionStatus !== undefined ? data.motionStatus : data.motion;
             const motionElem = document.getElementById('tele-motion');
             const stabilityElem = document.getElementById('tele-stability');
@@ -251,8 +250,6 @@
                 const isIdle = (rawMotion === "Idle" || rawMotion === "Stationary" || rawMotion === "Unmoving");
                 motionElem.textContent = isIdle ? "Idle" : "Active";
                 motionElem.className = isIdle ? "font-mono font-medium text-slate-400" : "font-mono font-medium text-emerald-400";
-                
-                // 4. Mug Stability Sub-condition (Tilted, Shaken, Spilling, etc.)
                 stabilityElem.textContent = rawMotion;
             } else {
                 motionElem.textContent = "--";
@@ -260,7 +257,7 @@
             }
         });
 
-        // Listen for real-time triggers from ESP8266 with timestamp freshness check
+        // Listen for real-time triggers from ESP8266
         db.ref('triggers/latest_event').on('value', (snapshot) => {
             const trigger = snapshot.val();
             if (!trigger) return;
@@ -269,23 +266,40 @@
             const eventTime = trigger.timestamp || 0;
             document.getElementById('active-event-log').textContent = `Triggered: [${eventId}] at ${new Date(eventTime).toLocaleTimeString()}`;
 
-            // Ignore stale events older than 15 seconds (prevents old database values from playing on page load/reconnect)
-            if (Date.now() - eventTime > 15000) {
-                return;
-            }
+            // Play associated audio
+            playEventAudio(eventId);
+        });
 
+        function playEventAudio(eventId) {
             db.ref(`config/audio/${eventId}`).once('value').then((audioSnap) => {
                 const audioPath = audioSnap.val();
                 if (audioPath) {
                     const player = document.getElementById('judgement-audio');
                     player.src = audioPath;
                     player.play().catch(err => {
-                        console.log("Audio playback blocked by browser policy:", err);
+                        console.log("Playback error or blocked by browser policy:", err);
                         document.getElementById('audio-banner').style.display = 'block';
                     });
+                } else {
+                    console.log("No audio path configured in Firebase for event:", eventId);
                 }
             });
-        });
+        }
+
+        // Test button next to inputs
+        function testSingleAudio(eventId) {
+            const inputVal = document.getElementById(`audio_${eventId}`).value;
+            if (!inputVal) {
+                alert("Please enter a valid raw MP3 URL for " + eventId + " first!");
+                return;
+            }
+            const player = document.getElementById('judgement-audio');
+            player.src = inputVal;
+            player.play().catch(err => {
+                alert("Playback failed. Check console for URL/CORS errors.");
+                console.log(err);
+            });
+        }
 
         // Save Wi-Fi Credentials
         function saveWiFiConfig(e) {
@@ -319,7 +333,7 @@
             });
         }
 
-        // Simulate Test Trigger with fresh timestamp
+        // Simulate Test Trigger
         function triggerMockEvent(eventId) {
             db.ref('triggers/latest_event').set({
                 event: eventId,

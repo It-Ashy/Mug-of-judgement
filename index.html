@@ -24,6 +24,9 @@
                 <p class="text-xs text-slate-400">Firebase Realtime DB: <span id="db-status" class="text-amber-500 font-mono">Connecting...</span></p>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
+                <button onclick="triggerMasterReset()" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-rose-600/10 flex items-center gap-1.5">
+                    🔄 Master Reset
+                </button>
                 <button onclick="triggerMockEvent('test_mock')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/10">
                     Test Mock
                 </button>
@@ -34,6 +37,29 @@
     <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <div class="space-y-6">
+            <!-- Simulation & Time Override Panel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                    ⏱️ Presentation Time Control
+                </h2>
+                <div class="space-y-3 text-xs">
+                    <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 cursor-pointer">
+                        <input type="radio" name="timeMode" id="mode-system" checked onclick="toggleTimeMode(false)" class="text-amber-500 focus:ring-amber-500">
+                        <span class="text-slate-200 font-medium">Use System / NTP Time</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 cursor-pointer">
+                        <input type="radio" name="timeMode" id="mode-simulated" onclick="toggleTimeMode(true)" class="text-amber-500 focus:ring-amber-500">
+                        <span class="text-slate-200 font-medium">Override / Set Time</span>
+                    </label>
+                    <div id="sim-time-container" class="hidden pt-2 flex items-center gap-2">
+                        <input type="time" id="sim-time-input" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-amber-400 font-mono w-full focus:outline-none focus:border-amber-500" value="08:00">
+                        <button onclick="applySimulatedTime()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-3 py-2 rounded-lg text-xs transition-all shrink-0">
+                            Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                 <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
                     📶 ESP8266 Wi-Fi Config
@@ -61,6 +87,10 @@
                     📊 Live Telemetry
                 </h2>
                 <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400">Current Time Set:</span>
+                        <span id="tele-time" class="font-mono font-medium text-amber-400">--:--</span>
+                    </div>
                     <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
                         <span class="text-slate-400">Temperature (NTC):</span>
                         <span id="tele-temp" class="font-mono font-medium text-amber-400">-- °C <span id="temp-condition" class="text-xs ml-1"></span></span>
@@ -199,30 +229,69 @@
             });
         });
 
+        function toggleTimeMode(isSimulated) {
+            const container = document.getElementById('sim-time-container');
+            if (isSimulated) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                // Revert to system/NTP time mode in Firebase config
+                db.ref('config/time').set({
+                    useSimulation: false
+                });
+            }
+        }
+
+        function applySimulatedTime() {
+            const timeVal = document.getElementById('sim-time-input').value; // format "HH:MM"
+            if (!timeVal) return;
+            
+            const [hours, minutes] = timeVal.split(':').map(Number);
+            db.ref('config/time').set({
+                useSimulation: true,
+                simHour: hours,
+                simMinute: minutes
+            }).then(() => {
+                alert(`Simulated time applied: ${timeVal}`);
+            });
+        }
+
+        function triggerMasterReset() {
+            if (confirm("Are you sure you want to perform a Master Reset? This will reset daily triggers, stare-down counters, and clear states.")) {
+                db.ref('control/reset').set({
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Master Reset command sent to the mug!");
+                });
+            }
+        }
+
         db.ref('telemetry').on('value', (snapshot) => {
             const data = snapshot.val() || {};
+            
+            // Update time readout
+            const timeElem = document.getElementById('tele-time');
+            if (data.currentTimeFormatted) {
+                timeElem.textContent = data.currentTimeFormatted + (data.simulatedActive ? " (Simulated)" : " (Live)");
+            } else {
+                timeElem.textContent = "--:--";
+            }
+
             const tempVal = data.temperature;
             const tempElem = document.getElementById('tele-temp');
             
             if (tempVal !== undefined) {
-                let colorClass = "";
                 let textDesc = "";
-                
                 if (tempVal > 68) {
-                    colorClass = "text-red-500";
                     textDesc = "(Scalding Hot)";
                 } else if (tempVal >= 50 && tempVal <= 68) {
-                    colorClass = "text-emerald-400";
                     textDesc = "(Drinkable)";
                 } else if (tempVal >= 30 && tempVal < 50) {
-                    colorClass = "text-amber-400";
                     textDesc = "(Cooling)";
                 } else {
-                    colorClass = "text-blue-400";
                     textDesc = "(Freezing Cold)";
                 }
-                
-                tempElem.innerHTML = `${tempVal} °C <span class="${colorClass} text-xs font-normal ml-1">${textDesc}</span>`;
+                tempElem.innerHTML = `${tempVal} °C <span class="text-xs font-normal ml-1">${textDesc}</span>`;
             } else {
                 tempElem.textContent = "-- °C";
             }
@@ -241,7 +310,7 @@
             const stabilityElem = document.getElementById('tele-stability');
             
             if (rawMotion !== undefined) {
-                const isIdle = (rawMotion === "Idle" || rawMotion === "Stationary" || rawMotion === "Unmoving");
+                const isIdle = (rawMotion.includes("Stationary") || rawMotion.includes("Idle") || rawMotion.includes("Stable"));
                 motionElem.textContent = isIdle ? "Idle" : "Active";
                 motionElem.className = isIdle ? "font-mono font-medium text-slate-400" : "font-mono font-medium text-emerald-400";
                 stabilityElem.textContent = rawMotion;

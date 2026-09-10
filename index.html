@@ -16,7 +16,7 @@
     </div>
 
     <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-xl font-bold tracking-tight text-amber-400 flex items-center gap-2">
                     ☕ Mug of Judgement <span class="text-xs px-2 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/20">Control Center</span>
@@ -34,32 +34,41 @@
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
 
-        <div class="space-y-6">
-            <!-- Simulation & Time Override Panel -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
-                    ⏱️ Presentation Time Control
-                </h2>
-                <div class="space-y-3 text-xs">
-                    <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 cursor-pointer">
-                        <input type="radio" name="timeMode" id="mode-system" checked onclick="toggleTimeMode(false)" class="text-amber-500 focus:ring-amber-500">
-                        <span class="text-slate-200 font-medium">Use System / NTP Time</span>
-                    </label>
-                    <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 cursor-pointer">
-                        <input type="radio" name="timeMode" id="mode-simulated" onclick="toggleTimeMode(true)" class="text-amber-500 focus:ring-amber-500">
-                        <span class="text-slate-200 font-medium">Override / Set Time</span>
-                    </label>
-                    <div id="sim-time-container" class="hidden pt-2 flex items-center gap-2">
-                        <input type="time" id="sim-time-input" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-amber-400 font-mono w-full focus:outline-none focus:border-amber-500" value="08:00">
-                        <button onclick="applySimulatedTime()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-3 py-2 rounded-lg text-xs transition-all shrink-0">
-                            Apply
-                        </button>
+        <!-- Top Section: Telemetry, Simulation Mode, and Wi-Fi Config side-by-side -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- 1. Presentation Time Control (Simulation Mode) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2 mb-4">
+                        ⏱️ Presentation Time Control
+                    </h2>
+                    <div class="space-y-3 text-xs">
+                        <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 cursor-pointer">
+                            <input type="radio" name="timeMode" id="mode-system" checked onclick="toggleTimeMode(false)" class="text-amber-500 focus:ring-amber-500">
+                            <span class="text-slate-200 font-medium">Use System / NTP Time</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 cursor-pointer">
+                            <input type="radio" name="timeMode" id="mode-simulated" onclick="toggleTimeMode(true)" class="text-amber-500 focus:ring-amber-500">
+                            <span class="text-slate-200 font-medium">Override / Set Time</span>
+                        </label>
+                        <div id="sim-time-container" class="hidden pt-2 flex items-center gap-2">
+                            <input type="time" id="sim-time-input" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-amber-400 font-mono w-full focus:outline-none focus:border-amber-500" value="08:00">
+                            <button onclick="applySimulatedTime()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-3 py-2 rounded-lg text-xs transition-all shrink-0">
+                                Apply
+                            </button>
+                        </div>
                     </div>
+                </div>
+                <div class="pt-4 border-t border-slate-800/80">
+                    <h3 class="text-xs font-semibold text-slate-400 mb-2">🚨 Last Judgement Event</h3>
+                    <p id="active-event-log" class="text-xs font-mono text-amber-400 bg-slate-950 p-3 rounded-lg border border-slate-800">Waiting for trigger...</p>
                 </div>
             </div>
 
+            <!-- 2. ESP8266 Wi-Fi Config -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                 <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
                     📶 ESP8266 Wi-Fi Config
@@ -76,62 +85,56 @@
                 </div>
                 <div class="flex flex-col items-center justify-center pt-2">
                     <div class="bg-white p-3 rounded-xl shadow-md mb-2">
-                        <img id="wifi-qr-img" src="" alt="Scan to connect to Wi-Fi" class="w-32 h-32 object-contain">
+                        <img id="wifi-qr-img" src="" alt="Scan to connect to Wi-Fi" class="w-28 h-28 object-contain">
                     </div>
                     <p class="text-[11px] text-slate-500 text-center">Scan with phone camera to join network</p>
                 </div>
             </div>
 
+            <!-- 3. Live Telemetry -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
                 <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
                     📊 Live Telemetry
                 </h2>
                 <div class="space-y-3 text-sm">
-                    <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
-                        <span class="text-slate-400">Current Time Set:</span>
-                        <span id="tele-time" class="font-mono font-medium text-amber-400">--:--</span>
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400 text-xs">Current Time Set:</span>
+                        <span id="tele-time" class="font-mono font-medium text-amber-400 text-xs">--:--</span>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
-                        <span class="text-slate-400">Temperature (NTC):</span>
-                        <span id="tele-temp" class="font-mono font-medium text-amber-400">-- °C <span id="temp-condition" class="text-xs ml-1"></span></span>
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400 text-xs">Temperature (NTC):</span>
+                        <span id="tele-temp" class="font-mono font-medium text-amber-400 text-xs">-- °C <span id="temp-condition" class="text-[10px] ml-1"></span></span>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
-                        <span class="text-slate-400">Liquid Bridge:</span>
-                        <span id="tele-liquid" class="font-mono font-medium text-emerald-400">--</span>
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400 text-xs">Liquid Bridge:</span>
+                        <span id="tele-liquid" class="font-mono font-medium text-emerald-400 text-xs">--</span>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
-                        <span class="text-slate-400">Motion Status:</span>
-                        <span id="tele-motion" class="font-mono font-medium text-sky-400">--</span>
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400 text-xs">Motion Status:</span>
+                        <span id="tele-motion" class="font-mono font-medium text-sky-400 text-xs">--</span>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800/60">
-                        <span class="text-slate-400">Mug Stability:</span>
-                        <span id="tele-stability" class="font-mono font-medium text-purple-400">--</span>
+                    <div class="flex justify-between items-center p-2.5 bg-slate-950 rounded-xl border border-slate-800/60">
+                        <span class="text-slate-400 text-xs">Mug Stability:</span>
+                        <span id="tele-stability" class="font-mono font-medium text-purple-400 text-xs">--</span>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <h2 class="text-lg font-semibold text-slate-200 mb-2 flex items-center gap-2">
-                    🚨 Last Judgement Event
-                </h2>
-                <p id="active-event-log" class="text-xs font-mono text-amber-400 bg-slate-950 p-3 rounded-lg border border-slate-800">Waiting for trigger...</p>
-            </div>
         </div>
 
-        <div class="lg:col-span-2 space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-200">🔊 Audio Clip Customization</h2>
-                        <p class="text-xs text-slate-400">Link your raw GitHub MP3 files to each trigger condition.</p>
-                    </div>
-                    <button onclick="saveAllAudioLinks()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-emerald-600/10">
-                        Save Audio Config
-                    </button>
+        <!-- Bottom Section: Audio Config at the Very Last -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-200">🔊 Audio Clip Customization</h2>
+                    <p class="text-xs text-slate-400">Link your raw GitHub MP3 files to each trigger condition.</p>
                 </div>
+                <button onclick="saveAllAudioLinks()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-emerald-600/10">
+                    Save Audio Config
+                </button>
+            </div>
 
-                <div id="audio-list" class="space-y-4 max-h-[550px] overflow-y-auto pr-2">
-                </div>
+            <div id="audio-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
             </div>
         </div>
 
@@ -206,12 +209,12 @@
         const audioListContainer = document.getElementById('audio-list');
         audioClips.forEach(clip => {
             const item = document.createElement('div');
-            item.className = "bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+            item.className = "bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex flex-col justify-between gap-2";
             item.innerHTML = `
-                <div class="flex-1">
-                    <span class="text-sm font-medium text-slate-200">${clip.label}</span>
+                <div>
+                    <span class="text-xs font-medium text-slate-200">${clip.label}</span>
                 </div>
-                <div class="w-full sm:w-1/2 flex gap-2">
+                <div class="flex gap-2">
                     <input type="text" id="audio_${clip.id}" placeholder="https://raw.githubusercontent.com/..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-amber-500 font-mono">
                     <button onclick="testSingleAudio('${clip.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 shrink-0">Test</button>
                 </div>
@@ -235,7 +238,6 @@
                 container.classList.remove('hidden');
             } else {
                 container.classList.add('hidden');
-                // Revert to system/NTP time mode in Firebase config
                 db.ref('config/time').set({
                     useSimulation: false
                 });
@@ -269,10 +271,9 @@
         db.ref('telemetry').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             
-            // Update time readout
             const timeElem = document.getElementById('tele-time');
             if (data.currentTimeFormatted) {
-                timeElem.textContent = data.currentTimeFormatted + (data.simulatedActive ? " (Simulated)" : " (Live)");
+                timeElem.textContent = data.currentTimeFormatted + (data.simulatedActive ? " (Sim)" : " (Live)");
             } else {
                 timeElem.textContent = "--:--";
             }
@@ -291,7 +292,7 @@
                 } else {
                     textDesc = "(Freezing Cold)";
                 }
-                tempElem.innerHTML = `${tempVal} °C <span class="text-xs font-normal ml-1">${textDesc}</span>`;
+                tempElem.innerHTML = `${tempVal} °C <span class="text-[10px] font-normal ml-1">${textDesc}</span>`;
             } else {
                 tempElem.textContent = "-- °C";
             }
@@ -300,7 +301,7 @@
             const liquidElem = document.getElementById('tele-liquid');
             if (liquidVal !== undefined) {
                 liquidElem.textContent = liquidVal ? "Wet" : "Dry";
-                liquidElem.className = liquidVal ? "font-mono font-medium text-emerald-400" : "font-mono font-medium text-amber-600";
+                liquidElem.className = liquidVal ? "font-mono font-medium text-emerald-400 text-xs" : "font-mono font-medium text-amber-600 text-xs";
             } else {
                 liquidElem.textContent = "--";
             }
@@ -312,7 +313,7 @@
             if (rawMotion !== undefined) {
                 const isIdle = (rawMotion.includes("Stationary") || rawMotion.includes("Idle") || rawMotion.includes("Stable"));
                 motionElem.textContent = isIdle ? "Idle" : "Active";
-                motionElem.className = isIdle ? "font-mono font-medium text-slate-400" : "font-mono font-medium text-emerald-400";
+                motionElem.className = isIdle ? "font-mono font-medium text-slate-400 text-xs" : "font-mono font-medium text-emerald-400 text-xs";
                 stabilityElem.textContent = rawMotion;
             } else {
                 motionElem.textContent = "--";
